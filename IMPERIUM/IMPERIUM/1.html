@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffikon - Traffic Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Basic Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #f10808;
+        }
+
+        header {
+            background-color: rgba(181, 181, 194, 0.8);
+            color: #7507f1;
+            padding: 10px;
+            text-align: center;
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            max-width: 2000px;
+            margin: 0 auto;
+            flex-grow: 1;
+            height: calc(100% - 80px);
+        }
+
+        .map-container {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-container {
+            flex: 0 0 400px;
+            background-color: rgba(233, 201, 58, 0.8);
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .info-container h2 {
+            margin-bottom: 15px;
+            color: #7414e2;
+        }
+
+        #search, select {
+            width: 100%;
+            padding: 12px 20px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            border: 2px solid #7414e2;
+            margin-bottom: 10px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Traffikon</h1>
+    </header>
+
+    <div class="container">
+        <div class="map-container" id="map"></div>
+        <div class="info-container">
+            <h2>Traffic Updates</h2>
+            <select id="location-dropdown">
+                <option value="">Select a location...</option>
+                <option value="Koramangala">Koramangala</option>
+                <option value="Jayanagar">Jayanagar</option>
+                <!-- Add other locations as required -->
+            </select>
+            <div id="output" style="margin-top: 15px; color: #7507f1;"></div>
+        </div>
+    </div>
+
+    <script>
+        const mapContainer = document.getElementById('map');
+        const locationDropdown = document.getElementById('location-dropdown');
+        const outputDiv = document.getElementById('output');
+
+        // Initialize Google Maps
+        const map = new google.maps.Map(mapContainer, {
+            center: { lat: 12.9716, lng: 77.5946 },  // Center map on Bangalore
+            zoom: 12,
+        });
+
+        locationDropdown.addEventListener('change', function () {
+            const selectedValue = this.value;
+            if (selectedValue) {
+                const locationCoords = {
+                    "Koramangala": { lat: 12.9338, lng: 77.6190 },
+                    "Jayanagar": { lat: 12.9348, lng: 77.5900 },
+                    // Add other location coordinates as required
+                };
+
+                if (locationCoords[selectedValue]) {
+                    const coords = locationCoords[selectedValue];
+                    map.setCenter(coords);
+
+                    fetch(`/predict`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ location: selectedValue })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.cycleTime) {
+                            outputDiv.innerHTML = `Cycle Time at ${selectedValue}: ${data.cycleTime} seconds`;
+                        } else {
+                            outputDiv.innerHTML = `Cycle Time data unavailable for ${selectedValue}`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching cycle time:', error);
+                        outputDiv.innerHTML = 'Error fetching cycle time.';
+                    });
+                } else {
+                    outputDiv.innerHTML = 'Invalid location selected.';
+                }
+            } else {
+                outputDiv.innerHTML = ''; // Clear output if no location is selected
+            }
+        });
+    </script>
+
+    <!-- Replace with your Google Maps API Key -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
+</body>
+</html>
